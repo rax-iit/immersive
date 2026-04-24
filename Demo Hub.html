@@ -662,6 +662,10 @@
     width: 100%; height: 100%;
     border: 0; display: block;
     background: #fff;
+    overflow: hidden;
+  }
+  .frame-wrap iframe[data-key="datagen"] {
+    background: #000;
   }
   .frame-wrap iframe:not(.is-active) { display: none; }
 
@@ -830,7 +834,7 @@
     <div class="frame-wrap">
       <!-- pre-created iframes per demo so state is preserved when switching -->
       <iframe data-key="datastudio" title="TP.ai DataStudio" loading="lazy" referrerpolicy="no-referrer"></iframe>
-      <iframe data-key="datagen" title="TP.ai DataGen" loading="lazy" referrerpolicy="no-referrer"></iframe>
+      <iframe data-key="datagen" title="TP.ai DataGen" loading="lazy" referrerpolicy="no-referrer" scrolling="no"></iframe>
       <iframe data-key="detector" title="TP.ai Detector" loading="lazy" referrerpolicy="no-referrer"></iframe>
       <iframe data-key="analytics" title="TP.ai Analytics" loading="lazy" referrerpolicy="no-referrer"></iframe>
       <div class="frame-loader" aria-hidden="true">
@@ -849,7 +853,7 @@
         label: "TP.ai DataStudio",
       },
       datagen: {
-        url: "https://react-uqsseftc.stackblitz.io/",
+        url: "https://react-uqsseftc.stackblitz.io/?embed=1&view=preview&hideNavigation=1&ctl=1",
         label: "TP.ai DataGen",
       },
       detector: {
