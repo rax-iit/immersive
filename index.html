@@ -709,9 +709,63 @@
     .aurora span { animation: none; }
     .card, .page, .demo-shell { transition: none; }
   }
+
+  /* Fullscreen prompt overlay */
+  #fs-prompt {
+    position: fixed; inset: 0; z-index: 200;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 20px;
+    background: rgba(0,0,0,0.82);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    cursor: pointer;
+    animation: fsPromptIn 0.5s cubic-bezier(0.2,0.7,0.2,1) both;
+  }
+  #fs-prompt.hidden { display: none; }
+  @keyframes fsPromptIn {
+    from { opacity: 0; transform: scale(0.97); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  #fs-prompt svg {
+    width: 52px; height: 52px;
+    color: rgba(255,255,255,0.6);
+  }
+  #fs-prompt p {
+    margin: 0;
+    font-size: clamp(14px, 1.4vw, 18px);
+    color: rgba(255,255,255,0.55);
+    letter-spacing: 0.04em;
+  }
+  #fs-prompt .fs-btn {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 12px 28px;
+    border-radius: 999px;
+    background: rgba(215,36,131,0.18);
+    border: 1px solid rgba(215,36,131,0.55);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 500;
+    font-family: inherit;
+    letter-spacing: 0.02em;
+    transition: background 0.25s, border-color 0.25s;
+  }
+  #fs-prompt:hover .fs-btn {
+    background: rgba(215,36,131,0.35);
+    border-color: rgba(215,36,131,0.85);
+  }
 </style>
 </head>
 <body>
+  <!-- Fullscreen prompt: shown on load if not already fullscreen -->
+  <div id="fs-prompt" class="hidden" role="button" tabindex="0" aria-label="Enter fullscreen">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M16 21h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+    </svg>
+    <div class="fs-btn">Enter Fullscreen</div>
+    <p>Press Esc at any time to exit</p>
+  </div>
+
   <div class="aurora" aria-hidden="true">
     <span class="a1"></span>
     <span class="a2"></span>
@@ -969,19 +1023,22 @@
     window.addEventListener("hashchange", applyHash);
     applyHash();
 
-    // Auto-fullscreen on load if not already fullscreen
-    function requestFullscreenOnce() {
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(() => {});
-      }
-      document.removeEventListener("click", requestFullscreenOnce);
+    // Fullscreen prompt
+    const fsPrompt = document.getElementById("fs-prompt");
+    function enterFullscreen() {
+      document.documentElement.requestFullscreen().catch(() => {}).finally(() => {
+        fsPrompt.classList.add("hidden");
+      });
+      fsPrompt.classList.add("hidden");
     }
     if (!document.fullscreenElement) {
-      // Try immediately; browsers block unless triggered by user gesture, so also hook first click as fallback
-      document.documentElement.requestFullscreen().catch(() => {
-        document.addEventListener("click", requestFullscreenOnce, { once: true });
-      });
+      fsPrompt.classList.remove("hidden");
+      fsPrompt.addEventListener("click", enterFullscreen);
+      fsPrompt.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") enterFullscreen(); });
     }
+    document.addEventListener("fullscreenchange", () => {
+      if (document.fullscreenElement) fsPrompt.classList.add("hidden");
+    });
 
     // ======= Global cursor parallax =======
     (function setupCursorParallax() {
