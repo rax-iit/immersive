@@ -903,6 +903,9 @@
       body.classList.add("demo-open");
       shell.setAttribute("aria-hidden", "false");
       document.title = DEMOS[key].label + " — TP.ai Data Services";
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
     }
 
     function goHome() {
