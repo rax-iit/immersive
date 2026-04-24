@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SVG → GIF</title>
+<style>
+  body { background:#0a0a0f; color:#FAFAF9; font-family:-apple-system,sans-serif; padding:24px; margin:0; }
+  h1 { font-size:18px; margin:0 0 16px; }
+  .row { display:flex; gap:16px; align-items:center; background:rgba(255,255,255,0.04); padding:12px 16px; border-radius:10px; margin-bottom:10px; }
+  .preview { width:100px; height:100px; background:#14141a; border-radius:8px; display:flex; align-items:center; justify-content:center; }
+  .preview img { width:100%; height:100%; object-fit:contain; }
+  .info { flex:1; }
+  .name { font-weight:600; margin-bottom:4px; }
+  .status { font-size:13px; opacity:0.7; }
+  .progress { height:4px; background:rgba(255,255,255,0.1); border-radius:2px; overflow:hidden; margin-top:6px; width:300px; }
+  .bar { height:100%; background:linear-gradient(90deg,#007FFF,#D72483); width:0%; transition:width 0.2s; }
+  a.dl { color:#007FFF; text-decoration:none; padding:8px 12px; background:rgba(0,127,255,0.12); border-radius:6px; font-size:13px; font-weight:600; }
+  button { background:#D72483; color:white; border:none; padding:10px 18px; border-radius:6px; font-weight:600; cursor:pointer; font-size:14px; }
+  .controls { margin-bottom:20px; display:flex; gap:12px; align-items:center; }
+</style>
+</head>
+<body>
+<h1>SVG → GIF Converter</h1>
+<div class="controls">
+  <button id="go">Convert all to GIF</button>
+  <span id="global-status" style="opacity:0.7; font-size:13px;"></span>
+</div>
+<div id="rows"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
+<script>
+const JOBS = [
+  { key: 'studio',    src: 'assets/icon-studio.svg',    dur: 6000, fps: 15 },
+  { key: 'gen',       src: 'assets/icon-gen.svg',       dur: 3000, fps: 20 },
+  { key: 'detector',  src: 'assets/icon-detector.svg',  dur: 4000, fps: 18 },
+  { key: 'analytics', src: 'assets/icon-analytics.svg', dur: 5000, fps: 15 },
+];
+const SIZE = 200;
+
+const rowsEl = document.getElementById('rows');
+JOBS.forEach(j => {
+  const row = document.createElement('div');
+  row.className = 'row';
+  row.innerHTML = `
+    <div class="preview"><img src="${j.src}" alt=""/></div>
+    <div class="info">
+      <div class="name">${j.key}.gif</div>
+      <div class="status" id="st-${j.key}">waiting…</div>
+      <div class="progress"><div class="bar" id="bar-${j.key}"></div></div>
+    </div>
+    <div id="dl-${j.key}"></div>`;
+  rowsEl.appendChild(row);
+});
+function setStatus(key, msg, pct) {
+  document.getElementById('st-' + key).textContent = msg;
+  if (pct !== undefined) document.getElementById('bar-' + key).style.width = pct + '%';
+}
+async function fetchText(url) { const r = await fetch(url); return r.text(); }
+
+// Prepare a same-origin Blob URL for the gif.js worker (avoids CORS issues)
+let workerBlobUrl = null;
+async function prepareWorker() {
+  const r = await fetch('https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.worker.js');
+  const text = await r.text();
+  const blob = new Blob([text], { type: 'application/javascript' });
+  workerBlobUrl = URL.createObjectURL(blob);
+}
+
+async function renderFrame(svgText, timeSec, size, iframe) {
+  const doc = iframe.contentDocument;
+  const svgEl = doc.querySelector('svg');
+  svgEl.setCurrentTime(timeSec);
+  await new Promise(r => setTimeout(r, 10));
+
+  const clone = svgEl.cloneNode(true);
+  const srcEls = svgEl.querySelectorAll('*');
+  const dstEls = clone.querySelectorAll('*');
+  for (let i = 0; i < srcEls.length; i++) {
+    const s = srcEls[i], d = dstEls[i];
+    if (!s || !d) continue;
+    for (const attr of s.getAttributeNames()) {
+      try { d.setAttribute(attr, s.getAttribute(attr)); } catch(e){}
+    }
+    try {
+      if (s.transform && s.transform.animVal.numberOfItems > 0) {
+        const parts = [];
+        for (let k=0; k<s.transform.animVal.numberOfItems; k++) {
+          const m = s.transform.animVal.getItem(k).matrix;
+          parts.push(`matrix(${m.a} ${m.b} ${m.c} ${m.d} ${m.e} ${m.f})`);
+        }
+        d.setAttribute('transform', parts.join(' '));
+      }
+    } catch(e){}
+  }
+  svgEl.querySelectorAll('animate, animateTransform').forEach((a, idx) => {
+    const dstA = clone.querySelectorAll('animate, animateTransform')[idx];
+    const dstParent = dstA && dstA.parentNode;
+    const srcParent = a.parentNode;
+    if (!dstParent) return;
+    const attrName = a.getAttribute('attributeName');
+    if (!attrName) return;
+    try {
+      if (a.tagName.toLowerCase() === 'animatetransform' && srcParent.transform && srcParent.transform.animVal.numberOfItems > 0) {
+        const av = srcParent.transform.animVal;
+        const parts = [];
+        for (let k=0; k<av.numberOfItems; k++) {
+          const m = av.getItem(k).matrix;
+          parts.push(`matrix(${m.a} ${m.b} ${m.c} ${m.d} ${m.e} ${m.f})`);
+        }
+        dstParent.setAttribute('transform', parts.join(' '));
+      } else {
+        const v = srcParent.getAttribute(attrName);
+        if (v != null) dstParent.setAttribute(attrName, v);
+      }
+    } catch(e){}
+  });
+
+  clone.setAttribute('width', size);
+  clone.setAttribute('height', size);
+  clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  const svgStr = new XMLSerializer().serializeToString(clone);
+  const dataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgStr);
+  const img = new Image();
+  await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = dataUrl; });
+
+  const canvas = document.createElement('canvas');
+  canvas.width = size; canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#0a0a0f';
+  ctx.fillRect(0, 0, size, size);
+  ctx.drawImage(img, 0, 0, size, size);
+  return canvas;
+}
+
+async function convertOne(job) {
+  setStatus(job.key, 'loading SVG…', 2);
+  const svgText = await fetchText(job.src);
+
+  const iframe = document.createElement('iframe');
+  iframe.style.cssText = `position:fixed;left:-9999px;top:0;width:${SIZE}px;height:${SIZE}px;border:0;`;
+  document.body.appendChild(iframe);
+  const doc = iframe.contentDocument;
+  doc.open();
+  doc.write(`<html><body style="margin:0;background:transparent;">${svgText}</body></html>`);
+  doc.close();
+  await new Promise(r => setTimeout(r, 120));
+  const svgEl = doc.querySelector('svg');
+  svgEl.setAttribute('width', SIZE);
+  svgEl.setAttribute('height', SIZE);
+  svgEl.pauseAnimations();
+
+  const frameCount = Math.round((job.dur / 1000) * job.fps);
+  const frameDelayMs = Math.round(1000 / job.fps);
+
+  const gif = new GIF({
+    workers: 2,
+    quality: 10,
+    width: SIZE,
+    height: SIZE,
+    workerScript: workerBlobUrl,
+    background: '#0a0a0f',
+    transparent: null,
+  });
+
+  for (let i = 0; i < frameCount; i++) {
+    const t = (i / frameCount) * (job.dur / 1000);
+    setStatus(job.key, `frame ${i+1}/${frameCount}`, (i / frameCount) * 60);
+    const canvas = await renderFrame(svgText, t, SIZE, iframe);
+    gif.addFrame(canvas, { delay: frameDelayMs, copy: true });
+  }
+
+  await new Promise((resolve, reject) => {
+    gif.on('progress', p => setStatus(job.key, 'encoding GIF…', 60 + p * 40));
+    gif.on('finished', blob => {
+      setStatus(job.key, `done — ${(blob.size/1024).toFixed(1)} KB`, 100);
+      const url = URL.createObjectURL(blob);
+      document.getElementById('dl-' + job.key).innerHTML = `<a class="dl" href="${url}" download="icon-${job.key}.gif">Download</a>`;
+      blob.arrayBuffer().then(buf => {
+        let bin = '';
+        const arr = new Uint8Array(buf);
+        for (let i = 0; i < arr.length; i++) bin += String.fromCharCode(arr[i]);
+        window.__gifsB64 = window.__gifsB64 || {};
+        window.__gifsB64[job.key] = btoa(bin);
+        resolve();
+      });
+    });
+    gif.on('abort', () => reject(new Error('aborted')));
+    gif.render();
+  });
+
+  document.body.removeChild(iframe);
+}
+
+document.getElementById('go').addEventListener('click', async () => {
+  document.getElementById('go').disabled = true;
+  document.getElementById('global-status').textContent = 'Preparing…';
+  try {
+    await prepareWorker();
+    document.getElementById('global-status').textContent = 'Converting…';
+    for (const j of JOBS) await convertOne(j);
+    document.getElementById('global-status').textContent = 'All done!';
+  } catch (e) {
+    document.getElementById('global-status').textContent = 'Error: ' + e.message;
+    console.error(e);
+  }
+  window.__allDone = true;
+});
+window.addEventListener('load', () => setTimeout(() => document.getElementById('go').click(), 400));
+</script>
+</body>
+</html>
