@@ -969,6 +969,20 @@
     window.addEventListener("hashchange", applyHash);
     applyHash();
 
+    // Auto-fullscreen on load if not already fullscreen
+    function requestFullscreenOnce() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+      document.removeEventListener("click", requestFullscreenOnce);
+    }
+    if (!document.fullscreenElement) {
+      // Try immediately; browsers block unless triggered by user gesture, so also hook first click as fallback
+      document.documentElement.requestFullscreen().catch(() => {
+        document.addEventListener("click", requestFullscreenOnce, { once: true });
+      });
+    }
+
     // ======= Global cursor parallax =======
     (function setupCursorParallax() {
       const root = document.documentElement;
