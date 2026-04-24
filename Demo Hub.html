@@ -874,7 +874,7 @@
     document.querySelectorAll(".nav-tab[data-key]").forEach((t) => {
       tabs[t.dataset.key] = t;
     });
-    const extLink = document.getElementById("nav-external-link");
+    const extLink = null;
 
     let currentKey = null;
 
@@ -898,8 +898,7 @@
         t.setAttribute("aria-selected", t.dataset.key === key ? "true" : "false");
       });
 
-      extLink.href = DEMOS[key].url;
-      extLink.title = "Open " + DEMOS[key].label + " in new tab";
+      if (extLink) { extLink.href = DEMOS[key].url; extLink.title = "Open " + DEMOS[key].label + " in new tab"; }
 
       body.classList.add("demo-open");
       shell.setAttribute("aria-hidden", "false");
