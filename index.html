@@ -478,6 +478,16 @@
     --icon-color: #FFFFFF;
     --icon-bg: linear-gradient(135deg, rgba(215,36,131,0.35), rgba(0,127,255,0.35));
   }
+  .card--tracking {
+    --card-bg-1: rgba(34,211,238,0.22);
+    --card-bg-2: rgba(34,211,238,0.04);
+    --card-accent: radial-gradient(120% 120% at 100% 0%, rgba(34,211,238,0.65), transparent 60%);
+    --card-glow: rgba(34,211,238,0.6);
+    --card-swatch: #22d3ee;
+    --card-edge: rgba(34,211,238,0.55);
+    --icon-color: #cffafe;
+    --icon-bg: radial-gradient(circle at 30% 30%, rgba(207,250,254,0.35), rgba(34,211,238,0.3));
+  }
 
   .card .icon {
     display: inline-flex; align-items: center; justify-content: center;
@@ -631,6 +641,7 @@
   .nav-tab[data-key="datagen"]     { --tab-dot: #007FFF; }
   .nav-tab[data-key="detector"]    { --tab-dot: #FFFFFF; }
   .nav-tab[data-key="analytics"]   { --tab-dot: #D72483; }
+  .nav-tab[data-key="tracking"]    { --tab-dot: #22d3ee; }
 
   .nav-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
@@ -855,6 +866,27 @@
           </span>
         </span>
       </a>
+
+      <a href="#/tracking" data-demo="tracking" class="card card--tracking">
+        <span class="icon" aria-hidden="true">
+          <svg viewBox="0 0 40 40" fill="none" style="width:100%;height:100%">
+            <rect x="6" y="10" width="13" height="10" rx="2" stroke="currentColor" stroke-width="2"/>
+            <rect x="21" y="20" width="13" height="10" rx="2" stroke="currentColor" stroke-width="2" stroke-dasharray="3 2"/>
+            <path d="M19 15h-4m10 5h4M10 28l4-4M30 12l-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            <circle cx="30" cy="10" r="3" fill="currentColor" opacity="0.5"/>
+            <circle cx="10" cy="30" r="3" fill="currentColor" opacity="0.5"/>
+          </svg>
+        </span>
+        <div class="card-body">
+          <div class="label">Tracking Through Obstacles</div>
+          <div class="desc">Correct AI tracking failures across occlusions, ID switches, and lost targets — Gaming AI use case.</div>
+        </div>
+        <span class="cta">Open demo
+          <span class="arrow" aria-hidden="true">
+            <svg viewBox="0 0 12 12" fill="none"><path d="M2 6h7M6 3l3 3-3 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+        </span>
+      </a>
     </footer>
   </div>
 
@@ -881,6 +913,9 @@
         <button type="button" class="nav-tab" data-key="analytics" role="tab">
           <span class="dot" aria-hidden="true"></span>Analytics
         </button>
+        <button type="button" class="nav-tab" data-key="tracking" role="tab">
+          <span class="dot" aria-hidden="true"></span>Tracking
+        </button>
       </div>
       <div class="nav-right"></div>
     </nav>
@@ -890,6 +925,7 @@
       <iframe data-key="datagen" title="TP.ai DataGen" loading="lazy" referrerpolicy="no-referrer" scrolling="no"></iframe>
       <iframe data-key="detector" title="TP.ai Detector" loading="lazy" referrerpolicy="no-referrer"></iframe>
       <iframe data-key="analytics" title="TP.ai Analytics" loading="lazy" referrerpolicy="no-referrer"></iframe>
+      <iframe data-key="tracking" title="Tracking Through Obstacles" loading="lazy" referrerpolicy="no-referrer"></iframe>
       <div class="frame-loader" aria-hidden="true">
         <span class="spin"></span>
         <span>Loading demo</span>
@@ -916,6 +952,10 @@
       analytics: {
         wip: true,
         label: "TP.ai Analytics",
+      },
+      tracking: {
+        url: "https://immersive-demo-lemon.vercel.app/use-cases/video-object-tracking",
+        label: "Tracking Through Obstacles – Gaming AI",
       },
     };
 
