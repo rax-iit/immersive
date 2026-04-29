@@ -1033,10 +1033,11 @@
       });
       fsPrompt.classList.add("hidden");
     }
+    // Always wire the click handler (used both on first load and after ESC re-lock)
+    fsPrompt.addEventListener("click", enterFullscreen);
+    fsPrompt.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") enterFullscreen(); });
     if (!document.fullscreenElement) {
       fsPrompt.classList.remove("hidden");
-      fsPrompt.addEventListener("click", enterFullscreen);
-      fsPrompt.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") enterFullscreen(); });
     }
 
     // ── Exit-lock ────────────────────────────────────────────────────────────
@@ -1089,8 +1090,11 @@
           }
           fsPrompt.classList.remove("hidden");
         } else {
-          // Unauthorised exit (ESC or browser UI) — re-enter fullscreen immediately
-          document.documentElement.requestFullscreen().catch(() => {});
+          // Unauthorised exit (ESC or browser UI).
+          // requestFullscreen() needs a real user gesture — we can't call it
+          // directly here. Instead, show the blocking overlay; clicking it IS
+          // a valid gesture so fullscreen re-entry will succeed.
+          fsPrompt.classList.remove("hidden");
         }
       }
     });
