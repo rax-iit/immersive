@@ -765,7 +765,7 @@
       <path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M16 21h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
     </svg>
     <div class="fs-btn">Enter Fullscreen</div>
-    <p>Press Esc at any time to exit</p>
+    <p>Type <strong>0000</strong> at any time to exit</p>
   </div>
 
   <div class="aurora" aria-hidden="true">
@@ -1023,14 +1023,6 @@
       goHome();
     });
 
-    // Esc to close
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && currentKey) {
-        history.pushState("", document.title, window.location.pathname + window.location.search);
-        goHome();
-      }
-    });
-
     window.addEventListener("hashchange", applyHash);
     applyHash();
 
@@ -1047,8 +1039,61 @@
       fsPrompt.addEventListener("click", enterFullscreen);
       fsPrompt.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") enterFullscreen(); });
     }
+
+    // ── Exit-lock ────────────────────────────────────────────────────────────
+    // Fullscreen can only be left by typing "0000".
+    // If the browser exits fullscreen for any other reason (e.g. ESC key),
+    // we immediately re-request it.
+    let _intentionalExit = false;
+    let _keyBuffer = "";
+
+    // Intercept ALL keydown events:
+    //   • Suppress ESC from doing anything at the JS level (can't stop the
+    //     browser's native fullscreen-exit, but we re-enter below).
+    //   • Accumulate printable chars; on "0000" trigger a graceful exit.
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        // Prevent ESC from closing the demo overlay or triggering anything else.
+        e.preventDefault();
+        return;
+      }
+      if (e.key.length === 1) {
+        _keyBuffer += e.key;
+        if (_keyBuffer.length > 4) _keyBuffer = _keyBuffer.slice(-4);
+        if (_keyBuffer === "0000") {
+          _keyBuffer = "";
+          _intentionalExit = true;
+          // Exit fullscreen first, then go home
+          if (document.fullscreenElement) {
+            document.exitFullscreen().catch(() => {});
+          } else {
+            // Already not fullscreen — just go home
+            if (currentKey) {
+              history.pushState("", document.title, window.location.pathname + window.location.search);
+              goHome();
+            }
+          }
+        }
+      }
+    }, true); // capture phase so we beat any other handlers
+
     document.addEventListener("fullscreenchange", () => {
-      if (document.fullscreenElement) fsPrompt.classList.add("hidden");
+      if (document.fullscreenElement) {
+        fsPrompt.classList.add("hidden");
+      } else {
+        if (_intentionalExit) {
+          // Authorised exit — go home and show the enter-fullscreen prompt again
+          _intentionalExit = false;
+          if (currentKey) {
+            history.pushState("", document.title, window.location.pathname + window.location.search);
+            goHome();
+          }
+          fsPrompt.classList.remove("hidden");
+        } else {
+          // Unauthorised exit (ESC or browser UI) — re-enter fullscreen immediately
+          document.documentElement.requestFullscreen().catch(() => {});
+        }
+      }
     });
 
     // ======= Global cursor parallax =======
