@@ -1076,10 +1076,9 @@
     const zoomLabel  = document.getElementById("zoom-label");
     const zoomInBtn  = document.getElementById("zoom-in");
     const zoomOutBtn = document.getElementById("zoom-out");
-    const pageEl     = document.querySelector(".page");
 
     function applyZoom() {
-      pageEl.style.zoom = zoomLevel + "%";
+      document.documentElement.style.zoom = zoomLevel + "%";
       zoomLabel.textContent = zoomLevel + "%";
       zoomInBtn.disabled  = zoomLevel >= ZOOM_MAX;
       zoomOutBtn.disabled = zoomLevel <= ZOOM_MIN;
