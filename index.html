@@ -646,6 +646,40 @@
     margin-left: auto;
   }
 
+  /* Zoom control */
+  .zoom-ctrl {
+    display: inline-flex; align-items: center; gap: 2px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 3px 6px;
+  }
+  .zoom-btn {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: var(--ink-hi);
+    font-size: 17px;
+    line-height: 1;
+    cursor: pointer;
+    font-family: inherit;
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: background 0.2s ease;
+    flex-shrink: 0;
+  }
+  .zoom-btn:hover { background: rgba(215,36,131,0.28); }
+  .zoom-btn:disabled { opacity: 0.3; cursor: default; }
+  .zoom-label {
+    font-size: 12px;
+    color: var(--ink-mid);
+    min-width: 34px;
+    text-align: center;
+    font-family: inherit;
+    letter-spacing: 0.02em;
+    user-select: none;
+  }
+
   .nav-external {
     display: inline-flex; align-items: center; gap: 6px;
     padding: 7px 12px;
@@ -869,7 +903,13 @@
           <span class="dot" aria-hidden="true"></span>Analytics
         </button>
       </div>
-      <div class="nav-right"></div>
+      <div class="nav-right">
+        <div class="zoom-ctrl" role="group" aria-label="Zoom">
+          <button class="zoom-btn" id="zoom-out" aria-label="Zoom out" title="Zoom out">−</button>
+          <span class="zoom-label" id="zoom-label">100%</span>
+          <button class="zoom-btn" id="zoom-in" aria-label="Zoom in" title="Zoom in">+</button>
+        </div>
+      </div>
     </nav>
     <div class="frame-wrap">
       <!-- pre-created iframes per demo so state is preserved when switching -->
@@ -1029,6 +1069,28 @@
 
     window.addEventListener("hashchange", applyHash);
     applyHash();
+
+    // ======= Zoom control =======
+    const ZOOM_MIN = 70, ZOOM_MAX = 140, ZOOM_STEP = 10;
+    let zoomLevel = 100;
+    const zoomLabel  = document.getElementById("zoom-label");
+    const zoomInBtn  = document.getElementById("zoom-in");
+    const zoomOutBtn = document.getElementById("zoom-out");
+    const pageEl     = document.querySelector(".page");
+
+    function applyZoom() {
+      pageEl.style.zoom = zoomLevel + "%";
+      zoomLabel.textContent = zoomLevel + "%";
+      zoomInBtn.disabled  = zoomLevel >= ZOOM_MAX;
+      zoomOutBtn.disabled = zoomLevel <= ZOOM_MIN;
+    }
+    zoomInBtn.addEventListener("click", () => {
+      if (zoomLevel < ZOOM_MAX) { zoomLevel += ZOOM_STEP; applyZoom(); }
+    });
+    zoomOutBtn.addEventListener("click", () => {
+      if (zoomLevel > ZOOM_MIN) { zoomLevel -= ZOOM_STEP; applyZoom(); }
+    });
+    applyZoom(); // set initial disabled state
 
     // Fullscreen prompt
     const fsPrompt = document.getElementById("fs-prompt");
