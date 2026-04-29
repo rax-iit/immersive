@@ -973,7 +973,7 @@
         label: "TP.ai DataStudio",
       },
       datagen: {
-        url: "https://tp-sdg-demo.vercel.app/?_vercel_share=GLYx7k3GJoahLM1yESW5gJPzONP94iPS",
+        url: "https://tp-sdg-demo.vercel.app/",
         label: "TP.ai DataGen",
       },
       detector: {
@@ -1045,6 +1045,8 @@
         }
       } else {
         loader.classList.remove("is-visible");
+        // Already loaded — re-send current theme so switching tabs stays in sync
+        if (f && f.src) setTimeout(() => sendThemeToFrame(f), 100);
       }
       Object.values(iframes).forEach((fr) => fr.classList.remove("is-active"));
       f && f.classList.add("is-active");
