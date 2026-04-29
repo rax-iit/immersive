@@ -765,7 +765,7 @@
 </head>
 <body>
   <!-- Fullscreen prompt: shown on load if not already fullscreen -->
-  <div id="fs-prompt" class="hidden" aria-hidden="true">
+  <div id="fs-prompt" class="hidden" role="button" tabindex="0" aria-label="Enter fullscreen">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
       <path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M16 21h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
     </svg>
@@ -976,6 +976,9 @@
       body.classList.add("demo-open");
       shell.setAttribute("aria-hidden", "false");
       document.title = DEMOS[key].label + " — TP.ai DataServices";
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
     }
 
     function goHome() {
@@ -1027,17 +1030,35 @@
     window.addEventListener("hashchange", applyHash);
     applyHash();
 
+    // Fullscreen prompt
+    const fsPrompt = document.getElementById("fs-prompt");
+    function enterFullscreen() {
+      document.documentElement.requestFullscreen().catch(() => {}).finally(() => {
+        fsPrompt.classList.add("hidden");
+      });
+      fsPrompt.classList.add("hidden");
+    }
+    // Always wire the click handler (used both on first load and after ESC re-lock)
+    fsPrompt.addEventListener("click", enterFullscreen);
+    fsPrompt.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") enterFullscreen(); });
+    if (!document.fullscreenElement) {
+      fsPrompt.classList.remove("hidden");
+    }
+
     // ── Exit-lock ────────────────────────────────────────────────────────────
-    // The PWA manifest (display: fullscreen) already handles fullscreen natively
-    // so we never call requestFullscreen() — that eliminates the browser's
-    // "To exit full screen, press Esc" notification entirely.
-    //
-    // ESC is suppressed at the JS level.
-    // The only authorised exit is typing "0000", which closes the PWA window.
+    // Fullscreen can only be left by typing "0000".
+    // If the browser exits fullscreen for any other reason (e.g. ESC key),
+    // we immediately re-request it.
+    let _intentionalExit = false;
     let _keyBuffer = "";
 
+    // Intercept ALL keydown events:
+    //   • Suppress ESC from doing anything at the JS level (can't stop the
+    //     browser's native fullscreen-exit, but we re-enter below).
+    //   • Accumulate printable chars; on "0000" trigger a graceful exit.
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") {
+        // Prevent ESC from closing the demo overlay or triggering anything else.
         e.preventDefault();
         return;
       }
@@ -1046,10 +1067,42 @@
         if (_keyBuffer.length > 4) _keyBuffer = _keyBuffer.slice(-4);
         if (_keyBuffer === "0000") {
           _keyBuffer = "";
-          window.close(); // closes the PWA window
+          _intentionalExit = true;
+          // Exit fullscreen first, then go home
+          if (document.fullscreenElement) {
+            document.exitFullscreen().catch(() => {});
+          } else {
+            // Already not fullscreen — just go home
+            if (currentKey) {
+              history.pushState("", document.title, window.location.pathname + window.location.search);
+              goHome();
+            }
+          }
         }
       }
-    }, true);
+    }, true); // capture phase so we beat any other handlers
+
+    document.addEventListener("fullscreenchange", () => {
+      if (document.fullscreenElement) {
+        fsPrompt.classList.add("hidden");
+      } else {
+        if (_intentionalExit) {
+          // Authorised exit — go home and show the enter-fullscreen prompt again
+          _intentionalExit = false;
+          if (currentKey) {
+            history.pushState("", document.title, window.location.pathname + window.location.search);
+            goHome();
+          }
+          fsPrompt.classList.remove("hidden");
+        } else {
+          // Unauthorised exit (ESC or browser UI).
+          // requestFullscreen() needs a real user gesture — we can't call it
+          // directly here. Instead, show the blocking overlay; clicking it IS
+          // a valid gesture so fullscreen re-entry will succeed.
+          fsPrompt.classList.remove("hidden");
+        }
+      }
+    });
 
     // ======= Global cursor parallax =======
     (function setupCursorParallax() {
